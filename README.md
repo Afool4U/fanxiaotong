@@ -1,12 +1,15 @@
 # fanxiaotong
 江大返校通 · 定时填报
 ## 使用方法:
-_分为4个step:_
+_分为5个step:_
 ### step 1 :
   安装必要的python包。具体需要什么包，请在我提供的python脚本文件内自行查看。
 ### step 2 :
-  下载Google Chrome浏览器，并下载对应版本的ChromeDriver。完成后请将ChromeDriver添加到环境变量中。
+  将脚本文件的第14到24行改成您需要填报账号的信息，其中邮箱是用来接收每天的填报结果。支持多账户批量填报；
+  填写脚本文件第85行所需要的QQ号和对应的QQ邮箱授权码，用于定时发送填报结果邮件。
 ### step 3 :
-  创建windows系统任务计划程序，在您想要的时间定时启动脚本。
+  下载Google Chrome浏览器，并下载对应版本的ChromeDriver。完成后请将ChromeDriver添加到环境变量中。
 ### step 4 :
+  创建windows系统任务计划程序，在您想要的时间定时启动脚本。
+### step 5 :
   重启电脑并进入BIOS，设定即时(RTC)闹铃唤醒事件，时间请设定在【step3】的2分钟前。
