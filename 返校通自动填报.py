@@ -1,10 +1,10 @@
 # -*- coding: UTF-8 -*-
-# @Time : 2022/2/3 16:30
+# @Time : 2022/2/6 7:12
 # @Author : HJL
 import os
 import time
 from datetime import datetime
-
+import requests
 import psutil
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -50,8 +50,6 @@ def login(username, password):
         pass
     # 跳转到日报填表界面
     driver.get(r'http://fanxiaotong.jiangnan.edu.cn/daily/fill')
-    # Xpath样式获取控件
-    # driver.find_element_by_xpath('//*[@id="navigation"]/ul/li[4]/a').click()
     return driver
 
 
@@ -72,8 +70,8 @@ def get_status(driver, account):
     success_msg = time.strftime('%Y-%m-%d', time.localtime()) + '日报'
     # 检查今日是否填报
     if success_msg in html:
-        driver.get('http://fanxiaotong.jiangnan.edu.cn/home')
         # 检查学号是否正确，防止填报错误
+        driver.get('http://fanxiaotong.jiangnan.edu.cn/home')
         student_id = driver.find_element_by_xpath('/html/body/div[2]/div/div[1]/div/div/div[1]/div/p[2]').text[-10:]
         if student_id == account['username']:
             return success_msg[:-2] + '\n账号' + student_id + ' 返校通填报成功！'
@@ -81,6 +79,7 @@ def get_status(driver, account):
         return '填报失败！失败日期：' + success_msg[:-2]
 
 
+"""  邮件发送工具  """
 class EmailSendTool:
     def __init__(self, qq='你的QQ', auth_code='你的QQ邮箱授权码'):
         self.__qq = qq
@@ -112,20 +111,43 @@ class EmailSendTool:
         self.__server.quit()
 
 
+"""  检查网络状态  """
+def isConnected():
+    try:
+        requests.get("http://www.baidu.com", timeout=2)
+    except Exception:
+        return False
+    return True
+
+
 if __name__ == "__main__":
-    run_seconds = (datetime.now() - datetime.fromtimestamp(psutil.boot_time())).total_seconds()
+    # 是否进行自动关机
+    shutdown = False
+    ran_seconds = (datetime.now() - datetime.fromtimestamp(psutil.boot_time())).total_seconds()
+    if ran_seconds < 5 * 60:  # 运行时间不够5分钟，可知为通过BIOS启动
+        shutdown = True
+    # 检查网络连接是否正常
+    while not isConnected():
+        time.sleep(1)
+    # 初始化邮件发送工具，一般来讲不会出现异常
     email = EmailSendTool()
     for account in accounts:
         username = account['username']
         password = account['password']
         receiver = account['receiver']
-        driver = login(username, password)
-        driver = submit_report(driver)
-        status_msg = get_status(driver, account)
-        email.send_msg(receiver, status_msg)
+        # 防止发生异常
+        try:
+            driver = login(username, password)
+            driver = submit_report(driver)
+            status_msg = get_status(driver, account)
+            email.send_msg(receiver, status_msg)
+            driver.quit()
+        except Exception as err:
+            # 发送出错信息
+            email.send_msg(receiver, '填报失败！失败时间：' + str(datetime.now()) + '\n异常信息：' + str(err))
         # 等待2秒
         time.sleep(2)
     email.quit()
-    if run_seconds < 15 * 60:  # 运行时间不够15分钟，可知为通过BIOS启动
+    if shutdown:
         # 5秒后关机
         os.system('shutdown /s /t 5')
