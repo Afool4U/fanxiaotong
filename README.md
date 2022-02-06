@@ -6,7 +6,7 @@
   
 ## 效果
 <div align=center>
-<img src="/image/example1.png"/ width="300">
+<img src="/image/example1.png"/ width="600">
 </div>
 
 ## 使用方法:
