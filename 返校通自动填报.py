@@ -1,9 +1,10 @@
 # -*- coding: UTF-8 -*-
-# @Time : 2022/2/6 7:12
+# @Time : 2022/2/6 9:34
 # @Author : HJL
 import os
+import datetime
 import time
-from datetime import datetime
+from datetime import datetime as dt
 import requests
 import psutil
 from selenium import webdriver
@@ -22,7 +23,6 @@ accounts = [
      },
     # 支持多个账户批量填报
 ]
-
 
 """  登录返校通  """
 def login(username, password):
@@ -67,16 +67,22 @@ def submit_report(driver):
 """  获取填报状态  """
 def get_status(driver, account):
     html = driver.execute_script("return document.documentElement.outerHTML")
-    success_msg = time.strftime('%Y-%m-%d', time.localtime()) + '日报'
+    success_msg = dt.now().strftime('%Y-%m-%d') + '日报'
     # 检查今日是否填报
     if success_msg in html:
+        # 获取已填报天数
+        date = dt(2022, 2, 3)  # 最早有效填报日期：2022/2/3
+        count = 0
+        while (date.strftime('%Y-%m-%d') + '日报') in html:
+            date += datetime.timedelta(days=1)
+            count += 1
         # 检查学号是否正确，防止填报错误
         driver.get('http://fanxiaotong.jiangnan.edu.cn/home')
         student_id = driver.find_element_by_xpath('/html/body/div[2]/div/div[1]/div/div/div[1]/div/p[2]').text[-10:]
         if student_id == account['username']:
-            return success_msg[:-2] + '\n账号' + student_id + ' 返校通填报成功！'
-    else:
-        return '填报失败！失败日期：' + success_msg[:-2]
+            return '日期：' + success_msg[:-2] + '\r\n\r\n账号' + student_id + ' 返校通填报成功！' \
+                   + '\r\n\r\n已填报{:d}天，还需填报{:d}天'.format(count, (14 - count) if count <= 14 else 0)
+    return '填报失败！失败日期：' + success_msg[:-2]
 
 
 """  邮件发送工具  """
@@ -123,7 +129,7 @@ def isConnected():
 if __name__ == "__main__":
     # 是否进行自动关机
     shutdown = False
-    ran_seconds = (datetime.now() - datetime.fromtimestamp(psutil.boot_time())).total_seconds()
+    ran_seconds = (dt.now() - dt.fromtimestamp(psutil.boot_time())).total_seconds()
     if ran_seconds < 5 * 60:  # 运行时间不够5分钟，可知为通过BIOS启动
         shutdown = True
     # 检查网络连接是否正常
@@ -144,7 +150,7 @@ if __name__ == "__main__":
             driver.quit()
         except Exception as err:
             # 发送出错信息
-            email.send_msg(receiver, '填报失败！失败时间：' + str(datetime.now()) + '\n异常信息：' + str(err))
+            email.send_msg(receiver, '填报失败！失败时间：' + str(datetime.now()) + '\r\n\r\n异常信息：' + str(err))
         # 等待2秒
         time.sleep(2)
     email.quit()
